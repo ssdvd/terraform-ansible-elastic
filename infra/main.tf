@@ -21,6 +21,7 @@ resource "aws_launch_template" "maquina" {
   tags = {
     Name = "Terraform Ansible Python"
   }
+  security_group_names = [var.sg_env]
 }
 
 resource "aws_key_pair" "chaveSSH" {

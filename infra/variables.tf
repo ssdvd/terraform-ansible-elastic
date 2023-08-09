@@ -8,6 +8,6 @@ variable "instancia" {
   type = string
 }
 
-variable "env" {
+variable "sg_env" {
   type = string
 }
