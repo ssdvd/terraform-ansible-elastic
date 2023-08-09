@@ -7,3 +7,7 @@ variable "chave" {
 variable "instancia" {
   type = string
 }
+
+variable "env" {
+  type = string
+}
