@@ -1,0 +1,48 @@
+Lauch template:
+
+utilizando o seguinte bloco de cod:
+
+resource "aws_launch_template" "maquina" {
+  image_id      = "ami-024e6efaf93d85776" | imagem desejada
+  instance_type = var.instancia
+  key_name      = var.chave
+  tags = {
+    Name = "Terraform Ansible Python"
+  }
+}
+
+iremos criar um template com o nome de maquina, utilizando a
+mesma imagem que estavamos criando com o ec2, ficando assim
+pronto para utilizar.
+
+Separando os grupos de seguranca:
+
+Ao adicionarmos a variavel sg_env do tipo string no arquivo
+variables.tf a mesma sera usada para separar os sg entre os 
+ambientes de dev e prod, para uma melhor pratica. E tambem
+vamos inserir a variavel no main.tf de cada ambiente com o 
+nome dos mesmos do value. Dessa forma:
+
+module "aws-dev" {
+  source = "../../infra"
+  instancia = "t2.micro"
+  regiao_aws = "us-east-2"
+  chave = "iac-dev"
+  sg_env = "dev"
+}
+
+e no main.tf da pasta infra iremosinserir a opcao
+security_group = [var.sg_env] dentro do bloco de cod do
+recurso do aws_launch_template, ficando assim:
+
+resource "aws_launch_template" "maquina" {
+  image_id      = "ami-024e6efaf93d85776"
+  instance_type = var.instancia
+  key_name      = var.chave
+  tags = {
+    Name = "Terraform Ansible Python"
+  }
+  security_group_names = [var.sg_env] | campo onde vai a variavel
+}
+
+assim ficando separado por ambiente. 
