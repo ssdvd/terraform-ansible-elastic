@@ -1,0 +1,102 @@
+Criando o grupo:
+
+e para podermos criarmos o autoscaling group, utilizamos o bloco
+a seguir: 
+
+resource "aws_autoscaling_group" "grupo" {
+  availability_zones = ["{var.regiao_aws}"]
+  name = var.nomeGrupo
+  max_size = var.maximo
+  min_size = var.minimo
+  launch_template {
+    id = aws_launch_template.maquina.id
+    version = "$Latest"
+  }
+}
+
+com esse bloco, estamos criando um groupo de autoscaling
+com o nome de grupo, e utilizando as variaveis para que se
+torne cada vez mais facil a criacao de ambientes separados
+e as variaveis criadas foram, nomeGrupo, especificando o nome
+do grupo de ambiente, o maximo que determida a quantidade maxima
+de instancias que pode ser criado conforme a necessidade e a variavel
+minimo, mostrando qual a quantidade minima para manter a instancia.
+e ainda estamos utilizando o template criado na aula anterior,
+para que toda vez que subir uma nova instancia, a mesma esteja
+configurada conforme a nossa necessidade. as variaveis foram 
+criadas conforme a necessidade, ou seja a maxima e minimo sao 
+do tipo number e a nomeGrupo e do tipo string
+
+e como estamos trabalhando com imagens agora, nao vai ser mais
+necessario ter o output com o ip, conforme vimos no treinamento
+anterior.
+
+Analisando as mudancas:
+
+com essa adicao no bloco de cod do recurso do autoscaling
+
+availability_zones = ["{var.regiao_aws}a"]
+
+podemos determinar em quais ou qual zona desejamos que a aplicacao
+suba. e a remocao do output de todos os main.tf, infra, prod e dev
+
+output "IP_publico" {
+  value = aws_instance.app_server.public_ip
+}
+assim nao teremos mais aquele ip de saida ao criar o ambiente.
+
+Reconfigurando as maquinas:
+
+no bloco:
+
+resource "aws_launch_template" "maquina" {
+  image_id      = "ami-024e6efaf93d85776"
+  instance_type = var.instancia
+  key_name      = var.chave
+  tags = {
+    Name = "Terraform Ansible Python"
+  }
+  security_group_names = [var.sg_env]
+  user_data = filebase64("ansible.sh")
+}
+
+Adicionamos o parametro user_data = filebase64("ansible.sh")
+com a intencao de utilizar um script de ansbile, onde ele 
+ira executar toda nossa configuracao que esta no arquivo
+playbook.yml e dentro desse ansible.sh, iremos primeiro entrar
+no diretorio correto que e o:
+
+cd /home/ubuntu
+
+fazer o download do pip utilizando o curl:
+
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+
+junto com a URL https://bootstrap.pypa.io/get-pip.py
+onde a mesma vai baixar um scrip python para realizar a instalacao
+do pip e o parametro -o serve para determinar o nome do arquivo 
+que sera executado. Com isso utilizando o comando:
+
+sudo python3 get-pip.py
+
+ira rodar o script instalando o pip e o comando:
+
+sudo python3 -m pip install ansible
+
+realizara a instalacao do ansible atraves do python com o pip
+e com o comando:
+
+tee -a playbook.yml > /dev/null <<EOT CONTEUDO DO PLAYBOOK EOT
+
+iremos criar um arquivo chamado playbook.yml e direcionamos o
+conteudo que seria retornado no console para o /dev/null e com
+a flag <<EOT CONTEUDO DO PLAYBOOK EOT iremos inserir o conteudo
+do playbook alterando somente o parametro hosts para locahost,
+assim monstrando que iremos executar o conteudo do playbook
+no host onde ele esta, e nao em um ip direcionado com visto
+nas aulas anteriores. E com o comando:
+
+ansible-playbook playbook.yml
+
+iremos de fato executar o playbook, realizando a configuracao
+da nossa instancia.
