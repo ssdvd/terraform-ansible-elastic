@@ -11,3 +11,15 @@ variable "instancia" {
 variable "sg_env" {
   type = string
 }
+
+variable "nomeGrupo" {
+  type = string
+}
+
+variable "maximo" {
+  type = number
+}
+
+variable "minimo" {
+  type = number
+}

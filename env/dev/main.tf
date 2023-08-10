@@ -4,8 +4,11 @@ module "aws-dev" {
   regiao_aws = "us-east-2"
   chave = "iac-dev"
   sg_env = "dev"
+  minimo = 0
+  maximo = 1
+  nomeGrupo = "dev"
 }
 
-output "IP" {
+/* output "IP" {
   value = module.aws-dev.IP_publico
-}
+} */
