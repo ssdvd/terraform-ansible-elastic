@@ -1,0 +1,93 @@
+Locais disponiveis:
+
+antes de criarmos nosso load balance, primeiro iremos criar um
+recurso que e a subnet e tambem adicionar mais uma az no
+nosso atual ASG:
+
+availability_zones = ["${var.regiao_aws}a", "${var.regiao_aws}b"]
+
+com essa adicao podemos verificar que agora alem da AZ-a tambem
+temos a AZ-b, assim dando maior disponibilidade para nossa aplicacao
+
+e para criarmos as subsnets, vai ser necessario adicionar esses
+blocos de cod:
+
+resource "aws_default_subnet" "subnet-1" {
+  availability_zone = "${var.regiao_aws}a"
+}
+
+resource "aws_default_subnet" "subnet-2" {
+  availability_zone = "${var.regiao_aws}b"
+}
+
+como podemos observar, a subnet-1 esta sendo criada na regiao-a 
+e a subnet-2 na regiao-b.
+
+criando um load balancer:
+
+para criarmos um LB, devemos inserir o bloco de cod:
+
+resource "aws_lb" "loadBalancer" {
+  internal = false | se vai ou nao conectar a internet, se for interno nao conecta e se nao for conecta
+  subnets = [ aws_default_subnet.subnet-1.id, aws_default_subnet.subnet-2 ]
+}
+
+Alvo do loadBalancer:
+
+antes de criarmos o alvo, devemos criar um vpc para utilizarmos
+vincular com o grupo alvo do loadBalancer. com esse bloco de cod:
+
+resource "aws_default_vpc" "default" {
+  
+}
+
+criamos uma vpc com as configuracoes padroes da aws e em seguida
+ja podemos criar nosso target group, dessa maneira:
+
+resource "aws_lb_target_group" "alvoLoadBalancer" {
+  name = "maquinasAlvo" | nome do target
+  port = "8080" | porta que ira receber as req
+  protocol = "HTTP" | protocolo
+  vpc_id = aws_default_vpc.default.id | ID da vpc que vai pertencer
+}
+
+aqui podemos ver a criacao do target group para o loadBalancer
+devemos especificar o nome, a porta e devemos colocar o valor
+entre as aspas, pois e um parametro que pede por uma string,
+tambem o protocolo e o ID da vpc que desejamos alocar.
+
+com isso feito, podemos inserir uma nova informacao dentro
+do bloco de cod do recurso do ASG, incluindo a linha:
+
+target_group_arns = [aws_lb_target_group.alvoLoadBalancer.arn]
+
+informando qual e o target group, o valor tambem deve ser passado
+entre os conchetes, pois o parametro que utlizamos, recebe mais de um
+valor.
+
+Entrada do load balancer:
+
+para definirmos a entrar do load balancer, precisamos criar o
+recurso lb_listener, para que possa receber as requisicoes e
+repassa-las, com esse bloco de cod:
+
+resource "aws_lb_listener" "entradaLoadBalancer" {
+  load_balancer_arn = aws_lb.loadBalancer.arn | arn do nosso lb
+  port              = "8000" | porta que receber as req
+  protocol          = "HTTP" | protocolo utilizado
+  default_action {
+    type             = "forward" | tipo de acao q o lb_listener ira executar
+    target_group_arn = aws_lb_target_group.alvoLoadBalancer.arn | arn do tg do lb
+  }
+
+esse recurso conta com o arn do nosso loadbalancer, porta que
+vai receber as req, protocolo utilizado, e no default_action
+iremos dizer o que o lb_listener ira fazer, que no caso e
+repassar as req para os servidores distribuidamente equilibrada 
+e tambem receber o arn do tg do lb, para saber de quem ele 
+deve distribuir.
+
+
+
+
+

@@ -1,0 +1,14 @@
+Instalando e preparando:
+
+para comecarmos a realizar os teste de cargas, antes devemos
+instalar um ferramenta que ira nos ajudar com isso, a ferramenta
+se chama locust, com uma interface grafica que ajudar na hora do uso 
+e para instalar essa ferramenta, e necessarario ter o python instalado 
+com ele instalado, utilizamos o comando:
+
+pip install locust
+
+como ele instaldo ja podemos inciar nossos testes.
+
+testando a aplicacao:
+
