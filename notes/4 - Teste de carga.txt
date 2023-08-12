@@ -12,3 +12,41 @@ como ele instaldo ja podemos inciar nossos testes.
 
 testando a aplicacao:
 
+para iniciarmos os testes, antes temos que criar um arquivo
+chamado carga.py com o seguinte conteudo:
+
+from locust import FastHttpUser, task
+
+class WebsiteUser(FastHttpUser):
+
+    @task
+    def index(self):
+        self.client.get("/")
+
+e com esse arquivo criado e salvo, podemos executar o seguinte
+comando:
+
+locust -f carga.py
+
+assim ele ira iniciar o testador de carga para podermos utilizar
+
+Insfraestrutura elastica:
+
+e para criamos uma politica funcionar de quando a infra ira aumentar
+ou diminuir, com o bloco de cod a seguir:
+
+resource "aws_autoscaling_policy" "escala-Producao" {
+  name = "terraform-escala" | nome da politica
+  autoscaling_group_name = var.nomeGrupo | grupo do autoscaling 
+  policy_type = "TargetTrakingScaling" | tipo da politica
+  target_tracking_configuration { | target da politica
+    predefined_metric_specification { | metricas da politicas
+      predefined_metric_type = "ASGAvarageCPUUtilization" | componente a ser monitorado
+    }
+    target_value = 50.0 | limite de uso para aumentar ou diminuir a infra.
+  }
+}
+
+com esse bloco de cod, podemos observar que estamos criando uma politica para
+que toda vez que a utilizacacao da CPU da nossa instancia ultrapassar 50% de uso
+iremos acrescentar mais umas instancia para assim entao termos um ambiente elastico.
