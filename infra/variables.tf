@@ -2,7 +2,7 @@ variable "regiao_aws" {
   type = string
 }
 variable "chave" {
-    type = string
+  type = string
 }
 variable "instancia" {
   type = string
@@ -22,4 +22,8 @@ variable "maximo" {
 
 variable "minimo" {
   type = number
+}
+
+variable "producao" {
+  type = bool
 }

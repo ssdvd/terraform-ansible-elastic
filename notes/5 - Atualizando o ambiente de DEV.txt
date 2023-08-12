@@ -1,38 +1,26 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 3.27"
-    }
-  }
+Dev no autoscaling group:
 
-  required_version = ">= 0.14.9"
-}
+basicamente deixando o main.tf do dev igual ao do prod, porem com menos recurso
+e retornando um erro pois o arquivo ansible.sh nao esta dentro do ambiente de dev.
 
-provider "aws" {
-  profile = "default"
-  region  = var.regiao_aws
-}
+IF no terraform:
 
-resource "aws_launch_template" "maquina" {
-  image_id      = "ami-024e6efaf93d85776"
-  instance_type = var.instancia
-  key_name      = var.chave
-  tags = {
-    Name = "Terraform Ansible Python"
-  }
-  security_group_names = [var.sg_env]
+com a linha seguinte:
+
   user_data            = var.producao ? filebase64("ansible.sh") : ""
-}
 
-resource "aws_key_pair" "chaveSSH" {
-  key_name   = var.chave
-  public_key = file("${var.chave}.pub")
-}
+podemos enxergar um "IF" que se a variavel estiver retornando TRUE, ele ira 
+carregar o arquivo ansible.sh e se for FALSE, nao acontecera nada. Assim quando
+dermos apply no terraform ele nao retornara nenhum erro.
 
-/* output "IP_publico" {
-  value = aws_instance.app_server.public_ip
-} */
+Multiplos recursos:
+
+nem todos os recursos iram aceitar o "IF" e quando isso acontece podemos
+utilizar o count para que o recurso seja ou nao criado conforme a variavel producao
+
+exemplos:
+
+no autoscaling_group
 
 resource "aws_autoscaling_group" "grupo" {
   availability_zones = ["${var.regiao_aws}a", "${var.regiao_aws}b"]
@@ -46,13 +34,10 @@ resource "aws_autoscaling_group" "grupo" {
   target_group_arns = var.producao ? [aws_lb_target_group.alvoLoadBalancer[0].arn] : []
 }
 
-resource "aws_default_subnet" "subnet-1" {
-  availability_zone = "${var.regiao_aws}a"
-}
+na linha do target_group_arns, podemos observar o uso do IF, mas com uma adicao
+no recurso do target, terminando com [0] isso siginifica pegara o valor da 
+primeira posicao para validar a condicao e provisionar, isso se deve por conta do count
 
-resource "aws_default_subnet" "subnet-2" {
-  availability_zone = "${var.regiao_aws}b"
-}
 
 resource "aws_lb" "loadBalancer" {
   internal = false
@@ -60,9 +45,7 @@ resource "aws_lb" "loadBalancer" {
   count    = var.producao ? 1 : 0
 }
 
-resource "aws_default_vpc" "default" {
-
-}
+a mesma coisa ocorre aqui
 
 resource "aws_lb_target_group" "alvoLoadBalancer" {
   name     = "maquinasAlvo"
@@ -71,6 +54,8 @@ resource "aws_lb_target_group" "alvoLoadBalancer" {
   vpc_id   = aws_default_vpc.default.id
   count    = var.producao ? 1 : 0
 }
+
+aqui tambem 
 
 resource "aws_lb_listener" "entradaLoadBalancer" {
   load_balancer_arn = aws_lb.loadBalancer[0].arn
@@ -82,6 +67,10 @@ resource "aws_lb_listener" "entradaLoadBalancer" {
   }
   count = var.producao ? 1 : 0
 }
+
+aqui ja podemos oberservar o uso do count, onde esse recurso somente sera provisionado
+se a variavel producao for TRUE, sendo TRUE o count tera o valor de 1, o que significa
+que sera provisionado.
 
 resource "aws_autoscaling_policy" "escala-Producao" {
   name                   = "terraform-escala"
@@ -95,3 +84,8 @@ resource "aws_autoscaling_policy" "escala-Producao" {
   }
   count = var.producao ? 1 : 0
 }
+
+a mesma coisa ocorre aqui.
+
+Criamos múltiplos recursos ao colocar a configuração count.
+Acessamos os recursos utilizando o nome lógico seguido de um número entre [ ].
