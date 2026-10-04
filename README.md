@@ -1,29 +1,78 @@
-# Resumo do projeto
+# terraform-ansible-elastic
 
-Segundo projeto de Infraestrutura como código, utilizando Terraform para provisionamento, Ansible para as configurações e dependências, e AWS como provedor da infraestrutura.
+Infraestrutura elástica na AWS como código: um launch template, um Auto Scaling Group e um Load Balancer criados com Terraform, com as máquinas se configurando sozinhas via Ansible na inicialização.
 
-## 🔨 Funcionalidades do projeto
+Projeto do curso **Infraestrutura como código: montando uma infraestrutura elástica na AWS**, da Alura. Continuação de [terraform-ansible](https://github.com/ssdvd/terraform-ansible).
 
-A partir desse projeto você pode:
+## Arquitetura
 
-- Criar maquinas virtuais na EC2
-- Separar o seu codigo em 2 ambientes, um de produção e um de desenvolvimento
-- configurar as maquinas para executar uma API em Django automaticamente
+```
+              ┌──────────────────┐
+usuários ───► │  Load Balancer   │ :8000
+              └────────┬─────────┘
+                       │
+              ┌────────▼─────────┐
+              │ Auto Scaling     │  1 a 10 instâncias
+              │ Group (2 AZs)    │  (launch template)
+              └──────────────────┘
+```
 
-## ✔️ Técnicas e tecnologias utilizadas
+- **Launch template**: define a AMI Ubuntu, o tipo da instância, a chave e o security group.
+- **Auto Scaling Group**: distribui as instâncias em duas zonas de disponibilidade e escala para manter o uso médio de CPU em 50% (target tracking).
+- **Load Balancer**: recebe o tráfego na porta `8000` e repassa para as instâncias do grupo.
+- **Ansible no boot**: em produção, o `user_data` executa o [`ansible.sh`](env/prod/ansible.sh), que instala o Ansible na própria máquina e roda o playbook que sobe a API Django.
 
-Neste App são exploradas as seguintes técnicas e tecnologias:
+## Ambientes
 
-- **Criação de maquinas na EC2**: criação de maquinas virtuias no ambiente EC2 (Elastic Compute Cloud) da AWS
-- **configuração das maquinas**: configura as maquians de forma automatica ultilizando o Ansible
-- **criação de playbooks**: os playbooks são parte integral do ansible e descrevem quais os passos a serem seguidos
-- **separação de ambientes**: 2 ambientes separados, construidos de forma automatica pelo Terraform, reultilizando codigo.
-- **Execução de APIs**: como iniciar um API automaticamente apos a configuração da maquina
+O módulo [`infra/`](infra) é o mesmo para os dois ambientes; a variável `producao` liga ou desliga o Load Balancer e o `user_data`.
 
-## 🛠️ Abrir e rodar o projeto
+| Variável | dev | prod |
+| --- | --- | --- |
+| `instancia` | `t2.micro` | `t2.micro` |
+| `regiao_aws` | `us-east-2` | `us-east-2` |
+| `chave` | `iac-dev` | `iac-prod` |
+| `minimo` / `maximo` | 0 / 1 | 1 / 10 |
+| `producao` | `false` | `true` |
 
-O projeto foi desenvolvido no VSC (Visual Studio Code), sendo assim, instale o VSC (pode ser uma versão mais recente) e, na tela inicial, procure a opção extenções, ou aperte Ctrl+Shift+X, e busque por HashiCorp Terraform, assim teremos o suporte do intellisense, tornando o trabalho de escrever o código mais rapido.
+## Pré-requisitos
 
-> Caso baixou o zip, extraia o projeto antes de procurá-lo, pois não é possível abrir via arquivo zip
+- [Terraform](https://developer.hashicorp.com/terraform/install) 0.14.9 ou superior
+- AWS CLI com credenciais no perfil `default`
+- [Locust](https://locust.io/), só para o teste de carga
 
-Vá até a paste a abra a pasta do projeto. Apos abrir o projeto abra um terminal, pode ser o integrado com o VSC, navegue até as pastas `infra/`,`env/prod` e `env/dev` e execute o comando `terraform init` dentro delas, agora temos o terraform iniciado e podemos começar a ultiliza-lo. Para criar a infraestrutura, execute o terraform apply em uma das pastas de Produção (`env/prod`) ou de Desenvolvimento (`env/dev`) de acordo com o ambiente desejado.🏆
+## Como usar
+
+```bash
+cd env/prod            # ou env/dev
+
+# o módulo lê a chave pública deste diretório
+ssh-keygen -f iac-prod # ou iac-dev
+
+terraform init
+terraform apply
+```
+
+Em produção, a API fica disponível na porta `8000` do DNS do Load Balancer (veja no console da EC2). Para remover o ambiente, rode `terraform destroy`.
+
+## Teste de carga
+
+O [`carga.py`](carga.py) simula usuários acessando a raiz da API, para ver o Auto Scaling em ação:
+
+```bash
+pip install locust
+locust -f carga.py
+```
+
+Abra <http://localhost:8089>, informe o endereço do Load Balancer com a porta `8000` e inicie o teste.
+
+## Estrutura
+
+```
+infra/      # módulo: launch template, ASG, load balancer, security group
+env/dev/    # ambiente de desenvolvimento
+env/prod/   # ambiente de produção + ansible.sh
+carga.py    # teste de carga com Locust
+notes/      # anotações das aulas
+```
+
+> O security group deste projeto libera todas as portas para qualquer origem, o que serve para estudo e não deve ser usado em produção.
