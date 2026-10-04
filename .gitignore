@@ -10,3 +10,6 @@
 *.pem
 
 *IaC-*
+### Python ###
+__pycache__/
+*.pyc
